@@ -2,6 +2,7 @@
 Blackjack Reinforcement Learning
 """
 import gymnasium as gym
+import numpy as np
 
 class BlackjackQLearning:
     """
@@ -26,6 +27,9 @@ class BlackjackQLearning:
                             self.q_table[(p_sum, dealer_card, usable_ace)][action] = 1
                         else:
                             self.q_table[(p_sum, dealer_card, usable_ace)][action] = 0
+
+        self.state = (0, 0, False)  # initial state
+        self.actions = [1, 0]  # 1: HIT  0: STAND
 
     def train(self):
         """
@@ -57,7 +61,25 @@ class BlackjackQLearning:
         :return: either 0 or 1 wherein 1 is hit and 0 is stick
         """
         # TODO: Replace with model action selection
-        return self.env.action_space.sample()
+        # if the current value <= 11, always hit b/c there is no harm in hitting another card
+        current_val = self.state[0]
+        if current_val <= 11:
+            return 1
+
+        # If the card sum is > 11 then discount_factor% of the time the player takes a random action
+        # otherwise the player takes a greedy approach which is the action that gains the
+        # most reward based on the current estimates of Q-value.
+        if np.random.uniform(0, 1) <= self.discount_factor:
+            action = np.random.choice(self.actions)
+        else:
+            # greedy approach
+            v = -999
+            action = 0
+            for i in self.q_table[self.state]:
+                if self.q_table[self.state][i] > v:
+                    action = i
+                    v = self.q_table[self.state][i]
+        return action
 
     def update_model(self,observation, reward):
         """
