@@ -84,7 +84,6 @@ class BlackjackQLearning:
         """
         Function that tests the model over a certain amount of games, returning
         the average reward score.
-        :param test_rounds: rounds of the game to play
         :return: average reward score over the games
         """
         sum_rewards = 0.0
@@ -98,9 +97,15 @@ class BlackjackQLearning:
         for i in range(len(self.training_error)):
             x_axis.append(i)
         plt.plot(x_axis, self.training_error)
+        plt.xlabel('iterations')
+        plt.ylabel('error')
+        plt.title('Training Error')
         plt.show()
 
 if __name__ == '__main__':
     bql = BlackjackQLearning()
     bql.train()
+    avg_reward = bql.test(100000)
+    print("Avg Reward:", avg_reward)
+    bql.plot_reward()
     bql.plot_training_error()
