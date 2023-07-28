@@ -36,6 +36,7 @@ class BlackjackQLearning:
         """
         Method to train the model
         """
+        self.env = gym.wrappers.RecordEpisodeStatistics(self.env, deque_size=self.epochs)
         for _ in range(self.epochs):
             self.run_game()
             self.reduce_epsilon()
@@ -80,6 +81,7 @@ class BlackjackQLearning:
                                          self.learning_rate * (self.reward + self.discount_factor * future_optimal - self.q_table[self.observation][action])
         err = self.reward + self.discount_factor * (future_optimal - self.q_table[self.observation][action])
         self.training_error.append(err)
+
     def test(self, test_rounds=100):
         """
         Function that tests the model over a certain amount of games, returning
@@ -93,19 +95,23 @@ class BlackjackQLearning:
         return sum_rewards / test_rounds
 
     def plot_training_error(self):
-        x_axis = []
-        for i in range(len(self.training_error)):
-            x_axis.append(i)
-        plt.plot(x_axis, self.training_error)
-        plt.xlabel('iterations')
-        plt.ylabel('error')
-        plt.title('Training Error')
-        plt.show()
+        _, axis = plt.subplots(figsize=(6, 5))
+        axis.set_title("Training Error Over Iterations")
+        error = (
+                np.convolve(np.array(self.training_error), np.ones(500), mode="same")
+                / 500
+        )
+        axis.plot(range(len(error)), error)
+
+        plt.tight_layout()
+        plt.savefig("TrainingError.png")
+
+def tabulate_results(file, epochs, learning_rate, discount_factor, epsilon):
+    bql = BlackjackQLearning(epochs=epochs, learning_rate=learning_rate, discount_factor=discount_factor, epsilon=epsilon)
+    bql.train()
+    bql.test(100)
 
 if __name__ == '__main__':
-    bql = BlackjackQLearning()
-    bql.train()
-    avg_reward = bql.test(100000)
-    print("Avg Reward:", avg_reward)
-    bql.plot_reward()
-    bql.plot_training_error()
+    results_file = open("results.csv", "a")
+    tabulate_results(results_file, epochs=100000, learning_rate=.0001, discount_factor=.95, epsilon=1)
+
