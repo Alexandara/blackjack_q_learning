@@ -1,8 +1,6 @@
 """
 Blackjack Reinforcement Learning
 """
-from __future__ import annotations
-
 from collections import defaultdict
 
 import gymnasium as gym
@@ -14,7 +12,7 @@ class BlackjackQLearning:
     BlackjackQLearning creates a reinforcement learning model that trains to
     play blackjack
     """
-    def __init__(self, render_mode=None, epochs=100000, learning_rate=.0001, discount_factor=.95, epsilon=1):
+    def __init__(self, render_mode=None, epochs=100000, learning_rate=.0001, discount_factor=.95, epsilon=1.0):
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.discount_factor = discount_factor
