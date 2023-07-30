@@ -1,6 +1,10 @@
 """
 Blackjack Reinforcement Learning
 """
+from __future__ import annotations
+
+from collections import defaultdict
+
 import gymnasium as gym
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,23 +24,13 @@ class BlackjackQLearning:
         self.env = gym.make('Blackjack-v1', natural=False, sab=False, render_mode=render_mode)
         self.observation, self.info = self.env.reset()
         # Q-Table Initialization
-        self.q_table = {}
-        for p_sum in range(4,32):
-            for dealer_card in range(1,12):
-                for usable_ace in [0,1]:
-                    self.q_table[(p_sum, dealer_card, usable_ace)] = {}
-                    for action in [0,1]:
-                        if (p_sum == 21) and (action == 0):
-                            self.q_table[(p_sum, dealer_card, usable_ace)][action] = 1
-                        else:
-                            self.q_table[(p_sum, dealer_card, usable_ace)][action] = 0
+        self.q_table = defaultdict(lambda: np.zeros(self.env.action_space.n))
         self.training_error = []
 
     def train(self):
         """
         Method to train the model
         """
-        self.env = gym.wrappers.RecordEpisodeStatistics(self.env, deque_size=self.epochs)
         for _ in range(self.epochs):
             self.run_game()
             self.reduce_epsilon()
@@ -79,7 +73,7 @@ class BlackjackQLearning:
         future_optimal = (not terminated) * max(self.q_table[temp_observation][0], self.q_table[temp_observation][1])
         self.q_table[self.observation][action] = self.q_table[self.observation][action] + \
                                          self.learning_rate * (self.reward + self.discount_factor * future_optimal - self.q_table[self.observation][action])
-        err = self.reward + self.discount_factor * (future_optimal - self.q_table[self.observation][action])
+        err = self.reward + self.discount_factor * future_optimal
         self.training_error.append(err)
 
     def test(self, test_rounds=100):
@@ -106,12 +100,43 @@ class BlackjackQLearning:
         plt.tight_layout()
         plt.savefig("TrainingError.png")
 
-def tabulate_results(file, epochs, learning_rate, discount_factor, epsilon):
+def tabulate_results(file, epochs=100000, learning_rate=.0001, discount_factor=.95, epsilon=1):
     bql = BlackjackQLearning(epochs=epochs, learning_rate=learning_rate, discount_factor=discount_factor, epsilon=epsilon)
     bql.train()
-    bql.test(100)
+    averages = []
+    for i in range(10):
+        averages.append(bql.test(100))
+    ans = round(sum(averages) / len(averages), 2)
+    file.write(str(epochs) + "," + str(learning_rate) + "," + \
+               str(discount_factor) + "," + str(epsilon) + \
+               "," + str(ans) + "\n")
+
 
 if __name__ == '__main__':
     results_file = open("results.csv", "a")
-    tabulate_results(results_file, epochs=100000, learning_rate=.0001, discount_factor=.95, epsilon=1)
-
+    results_file.write("Epochs,Learning Rate,Discount Factor,Epsilon,Average Win Rate\n")
+    print("Epoch Testing")
+    epochs = 10
+    while epochs <= 1000000:
+        tabulate_results(results_file, epochs=epochs)
+        epochs = epochs * 10
+    print("Learning Rate Testing")
+    learning_rate = .1
+    while learning_rate >= .00000001:
+        tabulate_results(results_file, learning_rate=learning_rate)
+        learning_rate = learning_rate * .1
+    print("Discount Rate Testing")
+    discount_factor = 1
+    while discount_factor >= .3:
+        tabulate_results(results_file, discount_factor=discount_factor)
+        discount_factor = discount_factor - .05
+    print("Epsilon Testing")
+    epsilon = 1
+    while epsilon >= .5:
+        tabulate_results(results_file, epsilon=epsilon)
+        epsilon = epsilon - .05
+    results_file.close()
+    bql = BlackjackQLearning(epochs=100000, learning_rate=.0000001, discount_factor=.35, epsilon=.6)
+    bql.train()
+    print(bql.test())
+    bql.plot_training_error()
